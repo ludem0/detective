@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сейнт-Твинс · Дело №24</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Playfair+Display:ital,wght@0,700;0,900;1,900&display=swap&subset=cyrillic" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231a1613'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23c49c5c' font-family='Georgia' font-style='italic' font-weight='900'%3ES%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div id="login-view" class="login" hidden>
+  <form id="login-form" class="login-card" autocomplete="on">
+    <span class="stamp-mark">Секретно</span>
+    <span class="eyebrow">Сейнт-Твинс · 1955</span>
+    <h1>Детективное агентство</h1>
+    <p class="lead">Войдите логином и паролем своей команды. Все устройства команды видят одни и те же поездки.</p>
+    <label class="field"><span>Логин агентства</span><input name="login" autocomplete="username" required></label>
+    <label class="field"><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required></label>
+    <button class="btn wide" type="submit">Войти в контору</button>
+    <p class="error" id="login-error" role="alert"></p>
+  </form>
+</div>
+
+<div id="app-view" hidden>
+  <header class="masthead">
+    <div class="agency">
+      <span class="eyebrow">Детективное агентство</span>
+      <strong id="team-name"></strong>
+    </div>
+    <div class="case-title">
+      <span class="eyebrow" id="case-no">Дело №24</span>
+      <h1 id="case-title">Зачарованный всадник</h1>
+    </div>
+    <div class="gauges">
+      <div class="gauge" id="timer-gauge"><span class="eyebrow">Время</span><b id="timer">—</b></div>
+      <div class="gauge"><span class="eyebrow">Поездки</span><b id="trips">0</b></div>
+      <button class="linkish" id="logout" type="button">Выйти</button>
+    </div>
+  </header>
+
+  <section id="waiting" class="waiting" hidden>
+    <div class="lamp"></div>
+    <span class="eyebrow">Ожидание брифинга</span>
+    <h2>Дело ещё не открыто</h2>
+    <p>Ведущий зачитает обращение клиента и даст старт. Материалы дела и поездки откроются сами — страницу обновлять не нужно.</p>
+  </section>
+
+  <div id="game" hidden>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="investigate" aria-selected="true">Расследование</button>
+      <button class="tab" role="tab" data-tab="materials" aria-selected="false">Материалы дела</button>
+      <button class="tab" role="tab" data-tab="book" aria-selected="false">Адресная книга</button>
+      <button class="tab" role="tab" data-tab="answers" aria-selected="false">Бланк ответов</button>
+      <button class="tab" role="tab" data-tab="results" aria-selected="false" hidden>Итоги</button>
+    </nav>
+
+    <main class="sheet">
+      <section data-panel="investigate" class="investigate">
+        <aside class="dispatch">
+          <h2>Поездка</h2>
+          <div class="dispatch-box">
+            <span class="eyebrow" style="color:var(--ink-soft)">Район</span>
+            <div class="compass" id="compass"></div>
+            <span class="eyebrow" style="color:var(--ink-soft)">Номер дома</span>
+            <div class="address-line">
+              <span class="prefix" id="prefix">—</span>
+              <input id="number" inputmode="text" autocomplete="off" placeholder="96 или 37/504" aria-label="Номер дома">
+            </div>
+            <button class="btn wide" id="go" type="button">Запросить адрес</button>
+            <p class="visit-msg" id="visit-msg" role="status"></p>
+          </div>
+          <details class="memo">
+            <summary>Как ездить</summary>
+            <ul>
+              <li>Выберите район и номер дома. Квартира, кабинет или номер в гостинице — через дробь: <code>37/504</code>.</li>
+              <li>Кнопку нажимают дважды: второй раз — подтверждение.</li>
+              <li>Каждая новая поездка увеличивает счётчик, даже если по адресу ничего нет. Повторная поездка по тому же адресу бесплатна.</li>
+              <li>Криминалист: <code>адрес/криминалист</code>. Обыск: <code>адрес/ордер</code> — результат придёт сам, когда оформят документы.</li>
+              <li>Телефонная станция: <code>Ц-48/номер без дефисов</code>.</li>
+              <li>Гонорар = $20 × Баллы² / √Поездки. Точность важнее экономии.</li>
+            </ul>
+          </details>
+          <div class="bulletins" id="bulletins"></div>
+        </aside>
+
+        <div>
+          <div class="journal-head">
+            <h2>Журнал расследования</h2>
+            <input id="journal-filter" type="search" placeholder="Поиск по журналу" aria-label="Поиск по журналу">
+          </div>
+          <p class="pending" id="pending" hidden></p>
+          <ol class="events" id="events"></ol>
+          <p class="empty-journal" id="journal-empty">Пока ни одной поездки. Обращение клиента — во вкладке «Материалы дела».</p>
+        </div>
+      </section>
+
+      <section data-panel="materials" class="materials" hidden>
+        <div>
+          <h2>Обращение</h2>
+          <article class="letter" id="brief"></article>
+        </div>
+        <div id="material-groups"></div>
+      </section>
+
+      <section data-panel="book" hidden>
+        <h2>Адресная книга <small>нажмите адрес, чтобы подставить его в поездку</small></h2>
+        <div class="book-tools">
+          <input id="book-q" type="search" placeholder="Фамилия, заведение или адрес" aria-label="Поиск в адресной книге">
+          <select id="book-district" aria-label="Район"><option value="">Все районы</option></select>
+          <select id="book-cat" aria-label="Раздел"><option value="">Все разделы</option></select>
+        </div>
+        <div class="book-count" id="book-count"></div>
+        <table class="book"><tbody id="book-rows"></tbody></table>
+      </section>
+
+      <section data-panel="answers" hidden>
+        <h2>Бланк ответов</h2>
+        <p class="answers-intro">Ответы сохраняются сами и видны на всех устройствах команды. Отправляет один человек; после отправки правка закрыта.</p>
+        <div id="questions"></div>
+        <div class="submit-row">
+          <button class="btn" id="submit" type="button">Отправить бланк</button>
+          <span id="submit-state"></span>
+        </div>
+      </section>
+
+      <section data-panel="results" hidden>
+        <div id="results"></div>
+        <div id="debrief" class="debrief"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox-bar">
+    <span id="lightbox-title"></span>
+    <div class="actions">
+      <a class="btn small ghost" id="lightbox-open" target="_blank" rel="noopener">Открыть отдельно</a>
+      <button class="btn small ghost" id="lightbox-close" type="button">Закрыть ✕</button>
+    </div>
+  </div>
+  <div class="lightbox-stage" id="lightbox-stage"><img id="lightbox-img" alt=""></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/static/common.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

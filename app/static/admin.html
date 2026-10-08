@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Пульт ведущего · Сейнт-Твинс</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Playfair+Display:ital,wght@0,700;0,900;1,900&display=swap&subset=cyrillic" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+<div id="denied" class="login" hidden>
+  <div class="login-card">
+    <span class="eyebrow">Пульт ведущего</span>
+    <h1>Нужен вход</h1>
+    <p class="lead">Войдите на главной странице логином <b>admin</b> и паролем ведущего.</p>
+    <a class="btn wide" href="/">На главную</a>
+  </div>
+</div>
+
+<div id="admin" hidden>
+  <header class="masthead">
+    <div class="agency"><span class="eyebrow">Пульт ведущего</span><strong id="case-name">Дело №24</strong></div>
+    <div class="case-title"><span class="eyebrow" id="status-label">—</span><h1 id="clock">—</h1></div>
+    <div class="gauges">
+      <a class="linkish" href="/" target="_blank" rel="noopener">Экран команды ↗</a>
+      <button class="linkish" id="logout" type="button">Выйти</button>
+    </div>
+  </header>
+
+  <main class="console">
+    <section class="panel">
+      <h2>Игра</h2>
+      <div class="row">
+        <button class="btn" data-clock="start" type="button">Старт</button>
+        <button class="btn ghost" data-clock="stop" type="button">Стоп</button>
+        <button class="btn ghost" data-clock="resume" type="button">Продолжить</button>
+        <button class="btn ghost" data-clock="add" data-min="10" type="button">+10 мин</button>
+        <button class="btn ghost" data-clock="add" data-min="-10" type="button">−10 мин</button>
+      </div>
+      <div class="settings">
+        <label>Длительность, мин <input type="number" min="1" id="set-duration_min"></label>
+        <label>Ордер оформляется, сек <input type="number" min="0" id="set-order_delay_sec"></label>
+        <label>Коэффициент гонорара, $ <input type="number" min="1" id="set-fee_coef"></label>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="set-answers_closed"> Закрыть приём бланков</label>
+        <label><input type="checkbox" id="set-results_published"> Показать командам итоги</label>
+        <label><input type="checkbox" id="set-debrief_published"> Показать разгадку</label>
+      </div>
+      <p class="hint">«Стоп» ставит паузу (поездки закрыты, время стоит), «Продолжить» снимает её. Повторный «Старт» возможен только после окончания времени или сброса.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Команды</h2>
+      <form id="team-form" class="row">
+        <input name="name" placeholder="Название агентства" maxlength="60" required>
+        <input name="login" placeholder="логин (необязательно)" maxlength="32" pattern="[a-z0-9_-]*" title="латиница, цифры, - и _">
+        <button class="btn" type="submit">Добавить</button>
+      </form>
+      <div id="creds" class="creds" hidden>
+        <div class="creds-head"><b>Выданные пароли</b><span>Показываются один раз — перепишите или распечатайте.</span>
+          <button class="btn small ghost" type="button" id="creds-print">Печать</button></div>
+        <div id="creds-list"></div>
+      </div>
+      <table class="board admin-board">
+        <thead><tr><th>#</th><th>Агентство</th><th>Логин</th><th class="num">Поездки</th><th>Бланк</th><th class="num">Баллы</th><th class="num">Гонорар</th><th></th></tr></thead>
+        <tbody id="board"></tbody>
+      </table>
+    </section>
+
+    <section class="panel" id="detail" hidden>
+      <div class="detail-head">
+        <h2 id="detail-name"></h2>
+        <div class="row">
+          <button class="btn small ghost" type="button" id="detail-unsubmit">Вернуть бланк</button>
+          <button class="btn small ghost" type="button" id="detail-password">Новый пароль</button>
+          <button class="btn small ghost" type="button" id="detail-wipe">Обнулить прогресс</button>
+          <button class="btn small danger" type="button" id="detail-delete">Удалить</button>
+          <button class="btn small ghost" type="button" id="detail-close">Закрыть ✕</button>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div>
+          <h3>Бланк и оценка</h3>
+          <div id="detail-answers"></div>
+        </div>
+        <div>
+          <h3>Журнал поездок <small id="detail-trips"></small></h3>
+          <ol id="detail-events" class="mini-journal"></ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Подсказки и сводки</h2>
+      <div id="hints"></div>
+      <form id="message-form" class="row">
+        <input name="text" placeholder="Сообщение всем командам" maxlength="1000" required>
+        <button class="btn" type="submit">Отправить</button>
+      </form>
+      <ul id="messages" class="msg-list"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>Разгадка <small>только для ведущего</small></h2>
+      <details><summary>Показать разгадку и эталон</summary><div id="debrief" class="debrief"></div></details>
+    </section>
+
+    <section class="panel danger-zone">
+      <h2>Сброс</h2>
+      <p class="hint">Удаляет все поездки, бланки, оценки и сообщения; таймер возвращается к ожиданию. Команды и пароли остаются.</p>
+      <form id="reset-form" class="row">
+        <input name="confirm" placeholder="Введите СБРОС" required>
+        <button class="btn danger" type="submit">Сбросить игру</button>
+      </form>
+    </section>
+  </main>
+</div>
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lightbox-bar"><span id="lightbox-title"></span><div class="actions">
+    <a class="btn small ghost" id="lightbox-open" target="_blank" rel="noopener">Открыть отдельно</a>
+    <button class="btn small ghost" id="lightbox-close" type="button">Закрыть ✕</button></div></div>
+  <div class="lightbox-stage" id="lightbox-stage"><img id="lightbox-img" alt=""></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="/static/common.js"></script>
+<script src="/static/admin.js"></script>
+</body>
+</html>
