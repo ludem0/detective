@@ -110,12 +110,17 @@ for (const btn of document.querySelectorAll("[data-clock]")) {
   btn.addEventListener("click", () => {
     const body = { action: btn.dataset.clock, minutes: Number(btn.dataset.min || 10) };
     const run = () => act(() => api("POST", "/api/admin/clock", body), "Готово");
-    if (body.action === "start" && A.status !== "waiting") armed(btn, run);
+    // Идущую игру сервер не перезапустит; подтверждение нужно только для нового старта после конца.
+    if (body.action === "start" && A.status === "finished") armed(btn, run);
     else run();
   });
 }
 
 // ---------- команды ----------
+
+function maxPoints() {
+  return A.state.questions.reduce((sum, q) => sum + q.max, 0);
+}
 
 function renderBoard(board) {
   $("#board").replaceChildren(...board.map((r) => el("tr", null,
@@ -124,7 +129,9 @@ function renderBoard(board) {
     el("td", null, r.login),
     el("td.num", null, r.trips),
     el("td", null, el(`span.badge.${r.submitted ? "ok" : "no"}`, null, r.submitted ? "отправлен" : "нет")),
-    el("td.num", null, `${r.points}${r.scored < A.state.questions.length ? ` (${r.scored}/${A.state.questions.length})` : ""}`),
+    el("td.num", null, `${r.points} из ${maxPoints()}`,
+      r.scored < A.state.questions.length
+        ? el("div.badge.no", null, `оценено ${r.scored}/${A.state.questions.length} вопр.`) : null),
     el("td.num", null, `$${r.fee}`),
     el("td", null, el("button.btn.small.ghost", { type: "button", onclick: () => openDetail(r.id) }, "Открыть")),
   )));

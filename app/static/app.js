@@ -390,6 +390,7 @@ function useAddress(address) {
 // ---------- бланк ответов ----------
 
 function renderQuestions(questions) {
+  $("#answers-max").textContent = `${questions.length} вопросов, максимум ${questions.reduce((s, q) => s + q.max, 0)} баллов. `;
   $("#questions").replaceChildren(...questions.map((q) => el("div.question", null,
     el("label", { for: `q${q.n}` }, el("span.qn", null, q.n), el("span", null, q.text), el("span.qmax", null, `до ${q.max} б.`)),
     el("textarea", { id: `q${q.n}`, dataset: { q: q.n }, oninput: (e) => scheduleSave(q.n, e.target.value) }),
