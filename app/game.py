@@ -98,7 +98,7 @@ class Game:
             raise GameError("Время остановлено: поездки недоступны.")
         parsed = self.case.parse(district, number)
         with self.db.tx() as c:
-            self._deliver_due(c, team_id, now)
+            delivered = self._deliver_due(c, team_id, now)
             if parsed.command == ORDER:
                 result = self._order(c, team_id, parsed, now)
             elif parsed.command == SEARCH:
@@ -107,7 +107,15 @@ class Game:
                 result = self._plain(c, team_id, parsed, now)
             if result.get("new"):
                 self._check_triggers(c, team_id, now)
+                self._move_to_end(c, delivered)
         return result
+
+    @staticmethod
+    def _move_to_end(c, event_ids: list[int]) -> None:
+        """Пришедшее во время поездки встаёт после неё: в журнале — сверху, и клиент его не пропустит."""
+        for event_id in event_ids:
+            top = c.execute("SELECT MAX(id) FROM events").fetchone()[0]
+            c.execute("UPDATE events SET id = ? WHERE id = ?", (top + 1, event_id))
 
     def _plain(self, c, team_id: int, parsed: Parsed, now: float) -> dict:
         trigger = self.triggers_by_key.get(parsed.key)
@@ -203,7 +211,9 @@ class Game:
                  team_id, t.entry.id),
             )
 
-    def _deliver_due(self, c, team_id: int, now: float) -> int:
+    def _deliver_due(self, c, team_id: int, now: float) -> list[int]:
+        """Переносит созревшее из pending в журнал; возвращает id новых записей."""
+        delivered = []
         rows = c.execute(
             "SELECT * FROM pending WHERE team_id = ? AND due_at <= ? ORDER BY due_at",
             (team_id, now),
@@ -214,22 +224,24 @@ class Game:
                 # Готов только ордер; за результатом обыска команда едет сама.
                 base_key, base_label = r["addr_key"].rsplit("/", 1)[0], r["label"].rsplit("/", 1)[0]
                 event = (f"{base_key}/{ORDER}", f"{base_label}/{ORDER}", f"ready:{base_key}", "ready")
-            c.execute(
+            cur = c.execute(
                 "INSERT OR IGNORE INTO events "
                 "(team_id, addr_key, label, entry_id, source, counted, created_at) "
                 "VALUES (?, ?, ?, ?, ?, 0, ?)",
                 (team_id, *event, r["due_at"]),
             )
+            if cur.rowcount:
+                delivered.append(cur.lastrowid)
             c.execute("DELETE FROM pending WHERE id = ?", (r["id"],))
         if rows:
             self._check_triggers(c, team_id, now)
-        return len(rows)
+        return delivered
 
     def deliver_due(self, team_id: int, now: float) -> int:
         # На паузе приходит только то, что было готово к её началу.
         stopped = self.get("stopped_at")
         with self.db.tx() as c:
-            return self._deliver_due(c, team_id, now if stopped is None else min(now, stopped))
+            return len(self._deliver_due(c, team_id, now if stopped is None else min(now, stopped)))
 
     # ---------- журнал ----------
 

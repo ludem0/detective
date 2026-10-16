@@ -149,6 +149,14 @@ def test_order_on_address_without_search_is_empty(game):
     assert not game.pending(1)
 
 
+def test_notice_delivered_during_trip_lands_on_top(game):
+    go(game, "Ю-35/ордер", at=T0 + 10)
+    trip = go(game, "П-96", at=T0 + 400)["event"]  # ордер созрел, доставка внутри поездки
+    events = game.events(1)
+    assert events[-1]["title"] == "Ордер готов" and events[-2]["id"] == trip["id"]
+    assert game.events(1, since_id=trip["id"])[0]["title"] == "Ордер готов"
+
+
 def test_search_is_free_only_before_order_is_ready(game):
     assert "ордер" in go(game, "Ю-35/обыск")["message"]
     go(game, "Ю-35/ордер")
