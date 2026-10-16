@@ -81,8 +81,11 @@ class Game:
         stopped = self.get("stopped_at")
         if stopped is None:
             return
-        self.put("started_at", self.get("started_at") + (now - stopped))
+        pause = now - stopped
+        self.put("started_at", self.get("started_at") + pause)
         self.put("stopped_at", None)
+        # Ордера и звонки ждут по игровым часам: пауза их не приближает.
+        self.db.run("UPDATE pending SET due_at = due_at + ? WHERE due_at > ?", (pause, stopped))
 
     def add_minutes(self, minutes: int) -> None:
         self.put("duration_min", max(1, self.get("duration_min") + minutes))
@@ -214,8 +217,10 @@ class Game:
         return len(rows)
 
     def deliver_due(self, team_id: int, now: float) -> int:
+        # На паузе приходит только то, что было готово к её началу.
+        stopped = self.get("stopped_at")
         with self.db.tx() as c:
-            return self._deliver_due(c, team_id, now)
+            return self._deliver_due(c, team_id, now if stopped is None else min(now, stopped))
 
     # ---------- журнал ----------
 

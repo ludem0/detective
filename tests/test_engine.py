@@ -242,6 +242,28 @@ def test_pause_freezes_clock_and_resume_keeps_remaining(game):
     assert go(game, "П-96", at=T0 + 3100)["counted"]
 
 
+def test_pause_holds_orders_and_triggers(game):
+    delay = game.get("order_delay_sec")
+    go(game, "Ю-35/ордер", at=T0 + 10)
+    go(game, "ЮВ-44", at=T0 + 10)
+    go(game, "СЗ-37", at=T0 + 20)  # звонок через 60 с: T0 + 80
+    game.stop(T0 + 30)
+    assert game.deliver_due(1, T0 + 10 + delay + 50) == 0
+    game.resume(T0 + 30 + 600)
+    assert game.deliver_due(1, T0 + 80 + 599) == 0
+    assert game.deliver_due(1, T0 + 80 + 600) == 1
+    assert game.deliver_due(1, T0 + 10 + delay + 599) == 0
+    assert game.deliver_due(1, T0 + 10 + delay + 600) == 1
+
+
+def test_order_ready_before_pause_arrives_during_it(game):
+    delay = game.get("order_delay_sec")
+    go(game, "Ю-35/ордер", at=T0 + 10)
+    game.stop(T0 + 10 + delay + 5)  # команда не опрашивала сервер, ордер уже готов
+    assert game.deliver_due(1, T0 + 10 + delay + 100) == 1
+    assert game.events(1)[-1]["at"] == T0 + 10 + delay
+
+
 def test_second_stop_does_not_move_pause(game):
     game.stop(T0 + 600)
     game.stop(T0 + 900)
