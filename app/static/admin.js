@@ -188,6 +188,7 @@ $("#detail-close").addEventListener("click", closeDetail);
 
 function renderDetail(d) {
   $("#detail-name").textContent = `${d.name} · ${d.login}`;
+  $("#detail-view").href = `/?view=${d.id}`;
   $("#detail-trips").textContent = `поездок: ${d.trips}${d.pending.length ? ` · ждут ордера: ${d.pending.map((p) => p.label).join(", ")}` : ""}`;
   $("#detail-unsubmit").hidden = !d.submitted_at;
   const refs = Object.fromEntries(A.caseRef.rubric.map((r) => [r.n, r]));

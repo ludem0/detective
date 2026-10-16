@@ -4,6 +4,8 @@ const POLL_MS = 4000;
 const ARM_MS = 4000;
 const SAVE_DELAY_MS = 700;
 const BOOK_LIMIT = 300;
+// Ведущий открывает /?view=<id>: экран этой команды без поездок и правки бланка.
+const VIEW_TEAM = new URLSearchParams(location.search).get("view");
 
 const S = {
   caseInfo: null,
@@ -28,6 +30,7 @@ const S = {
 
 async function init() {
   const me = await api("GET", "/api/me").catch(() => ({ role: null }));
+  if (me.role === "admin" && VIEW_TEAM) { showApp(""); return; }
   if (me.role === "admin") { location.href = "/admin"; return; }
   if (me.role === "team") { showApp(me.team); return; }
   showLogin();
@@ -63,6 +66,8 @@ function showApp(team) {
   $("#login-view").hidden = true;
   $("#app-view").hidden = false;
   $("#team-name").textContent = team;
+  $("#view-banner").hidden = !VIEW_TEAM;
+  $("#logout").hidden = Boolean(VIEW_TEAM); // выход из экрана команды разлогинил бы ведущего
   poll();
   setInterval(tickClock, 1000);
 }
@@ -72,10 +77,12 @@ function showApp(team) {
 async function poll() {
   clearTimeout(S.pollTimer);
   try {
-    const st = await api("GET", `/api/state?since=${S.lastEventId}`);
+    const view = VIEW_TEAM ? `&view=${encodeURIComponent(VIEW_TEAM)}` : "";
+    const st = await api("GET", `/api/state?since=${S.lastEventId}${view}`);
     await applyState(st);
   } catch (err) {
     if (err.status === 401) { showLogin(); return; }
+    if (VIEW_TEAM && err.status >= 400 && err.status < 500) { location.href = "/admin"; return; }
   }
   S.pollTimer = setTimeout(poll, POLL_MS);
 }
@@ -112,7 +119,7 @@ async function applyState(st) {
   renderBulletins(st.hints, st.messages);
   renderAnswers(st.answers, st.answers_locked, st.submitted_at);
   renderResults(st);
-  setDispatchEnabled(st.clock.status === "running");
+  setDispatchEnabled(st.clock.status === "running" && !VIEW_TEAM);
   S.firstLoad = false;
 }
 
@@ -422,9 +429,9 @@ function renderAnswers(answers, locked, submittedAt) {
     const q = ta.dataset.q;
     const server = answers[q] || "";
     if (document.activeElement !== ta && !S.dirty[q] && ta.value !== server) ta.value = server;
-    ta.disabled = locked;
+    ta.disabled = locked || Boolean(VIEW_TEAM);
   }
-  $("#submit").hidden = locked;
+  $("#submit").hidden = locked || Boolean(VIEW_TEAM);
   $("#submit-state").replaceChildren(submittedAt
     ? el("span.sent", null, `Бланк отправлен · ${timeOf(submittedAt)}`)
     : locked ? el("span", null, "Приём ответов закрыт ведущим.") : "");

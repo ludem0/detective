@@ -108,6 +108,14 @@ def create_app(data_dir: Path, case_path: Path, admin_password: str) -> FastAPI:
             raise HTTPException(403, "Только для команд.")
         return session["team_id"]
 
+    def viewed_team(view: int | None = None, session: dict = Depends(current)) -> int:
+        """Команда смотрит свой экран; ведущий — экран команды `view` (только чтение)."""
+        if not session["is_admin"]:
+            return team_session(session)
+        if view is None:
+            raise HTTPException(403, "Только для команд.")
+        return team_row(view)["id"]
+
     def admin_session(session: dict = Depends(current)) -> dict:
         if not session["is_admin"]:
             raise HTTPException(403, "Только для ведущего.")
@@ -185,7 +193,7 @@ def create_app(data_dir: Path, case_path: Path, admin_password: str) -> FastAPI:
         return addressbook
 
     @app.get("/api/state")
-    def state(since: int = 0, team_id: int = Depends(team_session)):
+    def state(since: int = 0, team_id: int = Depends(viewed_team)):
         now = time.time()
         game.deliver_due(team_id, now)
         team = db.one("SELECT name FROM teams WHERE id = ?", (team_id,))

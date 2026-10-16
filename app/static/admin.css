@@ -31,6 +31,7 @@
 .cred b { font: 700 15px var(--f-display); display: block; }
 .cred code { font-size: 15px; background: var(--stamp-soft); padding: 0 6px; }
 .detail-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: baseline; }
+.detail-head a.btn { text-decoration: none; }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; margin-top: 10px; }
 .qa { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dotted var(--line); }
 .qa-q { font-weight: 700; font-size: 13.5px; }

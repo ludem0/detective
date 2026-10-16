@@ -148,6 +148,19 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--desk-line);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent);
 }
+.view-banner {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 8px 16px;
+  background: var(--stamp);
+  color: var(--paper);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.view-banner a { color: var(--paper); font-weight: 700; }
 .agency strong { font: 700 17px/1.2 var(--f-display); color: var(--paper); }
 .case-title { text-align: center; }
 .case-title h1 {

@@ -130,6 +130,26 @@ def test_state_returns_new_events_since(admin, team):
     assert team.get(f"/api/state?since={s['events'][0]['id']}").json()["events"] == []
 
 
+def test_admin_views_team_screen_read_only(admin, team):
+    start(admin)
+    team.post("/api/visit", json={"district": "П", "number": "96"}, headers=H)
+    team.put("/api/answers/1", json={"text": "Джун"}, headers=H)
+    tid = admin.get("/api/admin/state").json()["board"][0]["id"]
+    s = admin.get(f"/api/state?view={tid}").json()
+    assert s["team"] == "Сыщики" and s["trips"] == 1 and s["answers"]["1"] == "Джун"
+    assert admin.get("/api/state").status_code == 403
+    assert admin.get("/api/state?view=999").status_code == 404
+    assert admin.post("/api/visit", json={"district": "П", "number": "48"}, headers=H).status_code == 403
+    assert admin.put("/api/answers/1", json={"text": "x"}, headers=H).status_code == 403
+    assert team.get("/api/state").json()["trips"] == 1
+
+
+def test_team_cannot_view_other_team(app, admin, team):
+    admin.post("/api/admin/teams", json={"name": "Соперники"}, headers=H)
+    other = next(r["id"] for r in admin.get("/api/admin/state").json()["board"] if r["name"] == "Соперники")
+    assert team.get(f"/api/state?view={other}").json()["team"] == "Сыщики"
+
+
 def test_answers_submit_and_scoring(admin, team):
     start(admin)
     assert team.put("/api/answers/1", json={"text": "Джун"}, headers=H).status_code == 200
