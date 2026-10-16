@@ -113,6 +113,8 @@ async function applyState(st) {
   for (const ev of st.events) {
     if (!S.cards.has(ev.id) && !S.firstLoad && ev.source !== "trip") fresh += 1;
     addEvent(ev);
+    // Курсор двигает только опрос: поездка может доставить в том же запросе события с меньшим id.
+    S.lastEventId = Math.max(S.lastEventId, ev.id);
   }
   if (fresh) toast("Для вас есть новая информация по адресам");
   renderPending(st.pending);
@@ -295,7 +297,6 @@ const TAGS = { trigger: "Пришло само", search: "Обыск", ready: "�
 
 function addEvent(ev) {
   if (S.cards.has(ev.id)) return;
-  S.lastEventId = Math.max(S.lastEventId, ev.id);
   const tag = TAGS[ev.source] || (ev.title === "Запрос ордера" ? "Ордер" : null);
   const meta = `${timeOf(ev.at)} · ${ev.counted ? "поездка" : "бесплатно"}`;
   const node = el(`li.card${ev.empty ? ".is-empty" : ""}`, { dataset: { id: ev.id } },
