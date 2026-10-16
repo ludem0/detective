@@ -100,16 +100,18 @@ def test_requires_hides_answer_until_prerequisite(game):
     assert 9 in game.unlocked(1)
 
 
-def test_order_delivers_search_after_delay(game):
+def test_order_ready_notice_after_delay_then_search_is_a_trip(game):
     r = go(game, "Ю-35/ордер", at=T0 + 10)
     assert r["counted"] and "ордер" in r["event"]["text"]
     assert game.pending(1)
     assert game.deliver_due(1, T0 + 100) == 0
     assert game.deliver_due(1, T0 + 10 + game.get("order_delay_sec")) == 1
-    last = game.events(1)[-1]
-    assert last["label"] == "Ю-35/обыск" and not last["counted"]
-    assert 8 in game.unlocked(1)
-    assert game.trips(1) == 1
+    ready = game.events(1)[-1]
+    assert ready["title"] == "Ордер готов" and "Ю-35/обыск" in ready["text"] and not ready["counted"]
+    assert 8 not in game.unlocked(1) and game.trips(1) == 1
+    r = go(game, "Ю-35/обыск", at=T0 + 400)
+    assert r["counted"] and r["event"]["label"] == "Ю-35/обыск" and "Журналисту" in r["event"]["text"]
+    assert 8 in game.unlocked(1) and game.trips(1) == 2
 
 
 def test_second_order_request_is_free(game):
@@ -124,14 +126,16 @@ def test_order_on_address_without_search_is_empty(game):
     assert not game.pending(1)
 
 
-def test_search_command_never_costs_a_trip(game):
+def test_search_is_free_only_before_order_is_ready(game):
     assert "ордер" in go(game, "Ю-35/обыск")["message"]
     go(game, "Ю-35/ордер")
     assert "оформляется" in go(game, "Ю-35/обыск", at=T0 + 20)["message"]
-    game.deliver_due(1, T0 + 400)
-    r = go(game, "Ю-35/обыск", at=T0 + 401)
-    assert "Журналисту" in r["event"]["text"]
     assert game.trips(1) == 1
+    r = go(game, "Ю-35/обыск", at=T0 + 401)  # ордер готов: доставка при самой поездке
+    assert r["counted"] and "Журналисту" in r["event"]["text"]
+    assert not go(game, "Ю-35/обыск", at=T0 + 402)["counted"]
+    assert game.trips(1) == 2
+    assert not any(e["source"] == "search" and not e["counted"] for e in game.events(1))
 
 
 def test_criminalist_is_plain_address(game):

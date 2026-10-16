@@ -291,7 +291,7 @@ function flash(id) {
   node.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-const TAGS = { trigger: "Пришло само", search: "Обыск" };
+const TAGS = { trigger: "Пришло само", search: "Обыск", ready: "Ордер готов" };
 
 function addEvent(ev) {
   if (S.cards.has(ev.id)) return;

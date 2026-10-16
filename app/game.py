@@ -101,7 +101,7 @@ class Game:
             if parsed.command == ORDER:
                 result = self._order(c, team_id, parsed, now)
             elif parsed.command == SEARCH:
-                result = self._search(c, team_id, parsed)
+                result = self._search(c, team_id, parsed, now)
             else:
                 result = self._plain(c, team_id, parsed, now)
             if result.get("new"):
@@ -134,7 +134,8 @@ class Game:
             )
         return result
 
-    def _search(self, c, team_id: int, parsed: Parsed) -> dict:
+    def _search(self, c, team_id: int, parsed: Parsed, now: float) -> dict:
+        """Обыск — отдельная поездка, но только когда ордер уже готов."""
         search = self.case.searches.get(parsed.base_key)
         texts = self.case.texts
         if search:
@@ -148,6 +149,8 @@ class Game:
             ).fetchone():
                 return {"new": False, "counted": False,
                         "message": texts["order_pending"].format(address=parsed.base_label)}
+            if self._has_event(c, team_id, f"ready:{parsed.base_key}"):
+                return self._record(c, team_id, parsed.key, parsed.label, search.id, "search", now)
         return {"new": False, "counted": False, "message": texts["search_needs_order"]}
 
     def _record(self, c, team_id, key, label, entry_id, source, now, counted=True) -> dict:
@@ -181,7 +184,7 @@ class Game:
     def _visited(c, team_id: int) -> set[str]:
         rows = c.execute(
             "SELECT addr_key FROM events WHERE team_id = ? AND entry_id != ? "
-            "AND entry_id NOT LIKE 'order:%'",
+            "AND entry_id NOT LIKE 'order:%' AND entry_id NOT LIKE 'ready:%'",
             (team_id, EMPTY),
         ).fetchall()
         return {r["addr_key"] for r in rows}
@@ -205,11 +208,16 @@ class Game:
             (team_id, now),
         ).fetchall()
         for r in rows:
+            event = (r["addr_key"], r["label"], r["entry_id"], r["source"])
+            if r["source"] == "search":
+                # Готов только ордер; за результатом обыска команда едет сама.
+                base_key, base_label = r["addr_key"].rsplit("/", 1)[0], r["label"].rsplit("/", 1)[0]
+                event = (f"{base_key}/{ORDER}", f"{base_label}/{ORDER}", f"ready:{base_key}", "ready")
             c.execute(
                 "INSERT OR IGNORE INTO events "
                 "(team_id, addr_key, label, entry_id, source, counted, created_at) "
                 "VALUES (?, ?, ?, ?, ?, 0, ?)",
-                (team_id, r["addr_key"], r["label"], r["entry_id"], r["source"], r["due_at"]),
+                (team_id, *event, r["due_at"]),
             )
             c.execute("DELETE FROM pending WHERE id = ?", (r["id"],))
         if rows:
@@ -231,6 +239,9 @@ class Game:
         if entry_id.startswith("order:"):
             title = "Запрос ордера"
             text = texts["order_requested"].format(address=row["label"].rsplit("/", 1)[0])
+        elif entry_id.startswith("ready:"):
+            title = "Ордер готов"
+            text = texts["order_ready"].format(address=row["label"].rsplit("/", 1)[0])
         elif entry_id != EMPTY and entry_id in self.case.by_id:
             entry = self.case.by_id[entry_id]
             title, text, appendices = entry.title, entry.text, entry.appendices
