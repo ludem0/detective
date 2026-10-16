@@ -301,6 +301,7 @@ function addEvent(ev) {
   const node = el(`li.card${ev.empty ? ".is-empty" : ""}`, { dataset: { id: ev.id } },
     tag ? el("span.tag", null, tag) : null,
     el("div.card-head", null, el("span.addr", null, ev.label), el("span.card-meta", null, meta)),
+    ev.portrait ? el("img.portrait", { src: ev.portrait, alt: "", width: 189, height: 236, loading: "lazy" }) : null,
     ev.title ? el("h3", null, ev.title) : null,
     el("div.card-text", null, paragraphs(ev.text)),
     ev.appendices.length ? el("div.attachments", null, ev.appendices.map(attachment)) : null,

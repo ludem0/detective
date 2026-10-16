@@ -115,6 +115,16 @@ def test_visit_flow_and_appendix_access(admin, team):
     assert admin.get("/files/a/2/app02.pdf").status_code == 200
 
 
+def test_portrait_only_after_visit(admin, team):
+    start(admin)
+    assert team.get("/files/p/bell.jpg").status_code == 403
+    assert admin.get("/files/p/bell.jpg").status_code == 200
+    team.post("/api/visit", json={"district": "Ц", "number": "46/3"}, headers=H)
+    r = team.get("/files/p/bell.jpg")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+    assert team.get("/files/p/..%2Fapp01.pdf").status_code == 404
+
+
 def test_download_sets_attachment(admin, team):
     start(admin)
     r = team.get("/files/m/map-pdf?dl=1")

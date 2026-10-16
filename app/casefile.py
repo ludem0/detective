@@ -41,6 +41,7 @@ class Entry:
     text: str
     appendices: tuple[int, ...] = ()
     requires: tuple[str, ...] = ()
+    portrait: str | None = None   # файл в files/portraits
 
 
 @dataclass(frozen=True)
@@ -116,6 +117,7 @@ def _entry(case: Case, prefix: str, item: dict, key: str | None = None) -> Entry
         text=item["text"].strip(),
         appendices=tuple(item.get("appendices", [])),
         requires=tuple(case.key_of(a) for a in item.get("requires", [])),
+        portrait=item.get("portrait"),
     )
 
 
@@ -128,6 +130,8 @@ def load_case(path: Path) -> Case:
         for n in entry.appendices:
             if n not in appendices:
                 raise ValueError(f"{entry.label}: нет приложения {n}")
+        if entry.portrait and not (Path(path).parent / "files" / "portraits" / entry.portrait).is_file():
+            raise ValueError(f"{entry.label}: нет портрета {entry.portrait}")
         if entry.id in case.by_id:
             raise ValueError(f"Дубль адреса {entry.label}")
         case.by_id[entry.id] = entry

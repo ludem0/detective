@@ -235,7 +235,7 @@ class Game:
     def event_view(self, row: sqlite3.Row) -> dict:
         entry_id = row["entry_id"]
         texts = self.case.texts
-        title, text, appendices = None, texts["empty"], ()
+        title, text, appendices, portrait = None, texts["empty"], (), None
         if entry_id.startswith("order:"):
             title = "Запрос ордера"
             text = texts["order_requested"].format(address=row["label"].rsplit("/", 1)[0])
@@ -245,11 +245,13 @@ class Game:
         elif entry_id != EMPTY and entry_id in self.case.by_id:
             entry = self.case.by_id[entry_id]
             title, text, appendices = entry.title, entry.text, entry.appendices
+            portrait = f"/files/p/{entry.portrait}" if entry.portrait else None
         return {
             "id": row["id"],
             "label": row["label"],
             "title": title,
             "text": text,
+            "portrait": portrait,
             "empty": entry_id == EMPTY,
             "source": row["source"],
             "counted": bool(row["counted"]),
@@ -291,6 +293,11 @@ class Game:
             if entry:
                 found.update(entry.appendices)
         return found
+
+    def portraits(self, team_id: int) -> set[str]:
+        rows = self.db.all("SELECT DISTINCT entry_id FROM events WHERE team_id = ?", (team_id,))
+        entries = (self.case.by_id.get(r["entry_id"]) for r in rows)
+        return {e.portrait for e in entries if e and e.portrait}
 
     # ---------- сводки ----------
 

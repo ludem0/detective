@@ -85,6 +85,20 @@ def test_alias_is_same_trip_as_canonical(game):
     assert game.trips(1) == 1
 
 
+def test_portrait_comes_with_visit(game):
+    assert not game.portraits(1)
+    r = go(game, "Ц-46/3")
+    assert r["event"]["portrait"] == "/files/p/bell.jpg"
+    assert game.portraits(1) == {"bell.jpg"}
+    assert go(game, "П-96/12")["event"]["portrait"] is None
+
+
+def test_every_portrait_file_exists(case):
+    portraits = {e.portrait for e in case.by_id.values() if e.portrait}
+    assert len(portraits) == 23
+    assert all((CASE.parent / "files" / "portraits" / p).is_file() for p in portraits)
+
+
 def test_appendices_unlock_only_after_visit(game):
     assert 1 not in game.unlocked(1)
     r = go(game, "П-48")

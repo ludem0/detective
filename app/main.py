@@ -277,6 +277,16 @@ def create_app(data_dir: Path, case_path: Path, admin_password: str) -> FastAPI:
         # no-cache: после обнуления команды браузер не должен показывать приложение из кэша
         return send(path, bool(dl), f"Приложение {n}. {a['title']}{path.suffix}", "private, no-cache")
 
+    portraits = {e.portrait for e in case.by_id.values() if e.portrait}
+
+    @app.get("/files/p/{name}")
+    def portrait_file(name: str, session: dict = Depends(current)):
+        if name not in portraits:
+            raise HTTPException(404)
+        if not session["is_admin"] and name not in game.portraits(session["team_id"]):
+            raise HTTPException(403, "Этого человека вы ещё не встречали.")
+        return send(files_dir / "portraits" / name, False, name, "private, no-cache")
+
     # ---------- ведущий ----------
 
     @app.get("/api/admin/state")

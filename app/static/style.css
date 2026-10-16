@@ -283,8 +283,11 @@ button { cursor: pointer; }
   border-radius: var(--radius);
   box-shadow: 0 12px 20px -16px rgba(0, 0, 0, 0.55);
   animation: drop var(--t) var(--ease);
+  display: flow-root;
 }
 .card.flash { animation: flash 1.2s var(--ease); }
+/* Белые уголки рамки сливаются с бумагой карточки */
+.card .portrait { float: right; width: 120px; height: auto; margin: 12px 0 10px 18px; mix-blend-mode: multiply; filter: grayscale(1) contrast(1.05); }
 .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
 .addr { font: 700 15px var(--f-mono); letter-spacing: 0.04em; padding: 2px 8px; background: var(--ink); color: var(--paper); border-radius: 2px; }
 .card-meta { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); }
@@ -449,6 +452,7 @@ button { cursor: pointer; }
   .tab { padding: 9px 12px 8px; font-size: 11px; }
   .sheet { margin: 0 0 24px; padding: 20px 16px; border-radius: 0; }
   .card { padding: 16px 14px 14px; }
+  .card .portrait { width: 84px; margin-left: 12px; }
   .letter { padding: 18px 16px; }
   .board td, .board th { padding: 8px 4px; }
 }
