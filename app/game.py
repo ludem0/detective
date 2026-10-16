@@ -27,9 +27,10 @@ class GameError(Exception):
 
 
 class Game:
-    def __init__(self, db: Database, case: Case):
+    def __init__(self, db: Database, case: Case, names: dict[str, str] | None = None):
         self.db = db
         self.case = case
+        self.names = names or {}  # ключ адреса → имя из адресной книги, заголовок пустой поездки
         self.triggers_by_key = {t.entry.key: t for t in case.triggers}
         self.questions = {q["n"]: q for q in case.raw["questions"]}
 
@@ -236,9 +237,13 @@ class Game:
         entry_id = row["entry_id"]
         texts = self.case.texts
         title, text, appendices, portrait = None, texts["empty"], (), None
-        if entry_id.startswith("order:"):
+        if entry_id == EMPTY:
+            title = self.names.get(row["addr_key"])
+        elif entry_id.startswith("order:"):
             title = "Запрос ордера"
-            text = texts["order_requested"].format(address=row["label"].rsplit("/", 1)[0])
+            search = self.case.searches.get(entry_id.split(":", 1)[1])
+            text = (search.order_text if search and search.order_text
+                    else texts["order_requested"].format(address=row["label"].rsplit("/", 1)[0]))
         elif entry_id.startswith("ready:"):
             title = "Ордер готов"
             text = texts["order_ready"].format(address=row["label"].rsplit("/", 1)[0])

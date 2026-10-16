@@ -57,6 +57,15 @@ def test_known_address_gives_text_and_counts_trip(game):
     assert game.trips(1) == 1
 
 
+def test_empty_address_titled_from_addressbook(case, tmp_path):
+    g = Game(Database(tmp_path / "g.db"), case, names={"В-59": "Променад"})
+    g.db.run("INSERT INTO teams (name, login, pass_hash, created_at) VALUES ('A', 'a', 'x', 0)")
+    g.start(T0)
+    r = go(g, "В-59")
+    assert r["event"]["empty"] and r["event"]["title"] == "Променад"
+    assert go(g, "П-98/20")["event"]["title"] is None
+
+
 def test_unknown_address_is_empty_but_counted(game):
     r = go(game, "Ц-27")
     assert r["event"]["empty"] and r["counted"]
@@ -116,7 +125,7 @@ def test_requires_hides_answer_until_prerequisite(game):
 
 def test_order_ready_notice_after_delay_then_search_is_a_trip(game):
     r = go(game, "Ю-35/ордер", at=T0 + 10)
-    assert r["counted"] and "ордер" in r["event"]["text"]
+    assert r["counted"] and "ордер на обыск дома Лайонела Коха" in r["event"]["text"]
     assert game.pending(1)
     assert game.deliver_due(1, T0 + 100) == 0
     assert game.deliver_due(1, T0 + 10 + game.get("order_delay_sec")) == 1
@@ -124,7 +133,7 @@ def test_order_ready_notice_after_delay_then_search_is_a_trip(game):
     assert ready["title"] == "Ордер готов" and "Ю-35/обыск" in ready["text"] and not ready["counted"]
     assert 8 not in game.unlocked(1) and game.trips(1) == 1
     r = go(game, "Ю-35/обыск", at=T0 + 400)
-    assert r["counted"] and r["event"]["label"] == "Ю-35/обыск" and "Журналисту" in r["event"]["text"]
+    assert r["counted"] and r["event"]["label"] == "Ю-35/обыск" and r["event"]["appendices"][0]["n"] == 8
     assert 8 in game.unlocked(1) and game.trips(1) == 2
 
 
@@ -146,7 +155,7 @@ def test_search_is_free_only_before_order_is_ready(game):
     assert "оформляется" in go(game, "Ю-35/обыск", at=T0 + 20)["message"]
     assert game.trips(1) == 1
     r = go(game, "Ю-35/обыск", at=T0 + 401)  # ордер готов: доставка при самой поездке
-    assert r["counted"] and "Журналисту" in r["event"]["text"]
+    assert r["counted"] and r["event"]["appendices"][0]["n"] == 8
     assert not go(game, "Ю-35/обыск", at=T0 + 402)["counted"]
     assert game.trips(1) == 2
     assert not any(e["source"] == "search" and not e["counted"] for e in game.events(1))

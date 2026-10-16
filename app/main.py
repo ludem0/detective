@@ -72,7 +72,7 @@ def create_app(data_dir: Path, case_path: Path, admin_password: str) -> FastAPI:
     files_dir = case_path.parent / "files"
     addressbook = json.loads((case_path.parent / "addressbook.json").read_text(encoding="utf-8"))
     materials = {m["id"]: m for m in case.raw["materials"]}
-    game = Game(db, case)
+    game = Game(db, case, names={case.key_of(r["a"]): r["t"] for r in addressbook})
     sessions = Sessions(db)
     sessions.drop_admins()  # пароль ведущего мог смениться вместе с перезапуском
     limiter = LoginLimiter()

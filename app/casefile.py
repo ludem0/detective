@@ -42,6 +42,7 @@ class Entry:
     appendices: tuple[int, ...] = ()
     requires: tuple[str, ...] = ()
     portrait: str | None = None   # файл в files/portraits
+    order_text: str | None = None  # у обыска: текст запроса ордера
 
 
 @dataclass(frozen=True)
@@ -118,6 +119,7 @@ def _entry(case: Case, prefix: str, item: dict, key: str | None = None) -> Entry
         appendices=tuple(item.get("appendices", [])),
         requires=tuple(case.key_of(a) for a in item.get("requires", [])),
         portrait=item.get("portrait"),
+        order_text=item.get("order_text"),
     )
 
 

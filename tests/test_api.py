@@ -131,6 +131,12 @@ def test_download_sets_attachment(admin, team):
     assert r.status_code == 200 and r.headers["content-disposition"].startswith("attachment")
 
 
+def test_empty_visit_shows_addressbook_name(admin, team):
+    start(admin)
+    ev = team.post("/api/visit", json={"district": "С", "number": "76"}, headers=H).json()["event"]
+    assert ev["empty"] and ev["title"] == "Аббаль Махмуд"
+
+
 def test_bad_address_returns_422(admin, team):
     start(admin)
     r = team.post("/api/visit", json={"district": "П", "number": "ферма"}, headers=H)
