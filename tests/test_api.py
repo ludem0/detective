@@ -81,6 +81,11 @@ def test_team_cannot_use_admin_api(team):
     assert team.post("/api/admin/clock", json={"action": "start"}, headers=H).status_code == 403
 
 
+def test_static_is_revalidated(app):
+    r = TestClient(app).get("/static/admin.js")
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-cache"
+
+
 def test_anonymous_gets_401(app):
     c = TestClient(app)
     assert c.get("/api/state").status_code == 401

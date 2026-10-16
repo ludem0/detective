@@ -87,6 +87,14 @@ def create_app(data_dir: Path, case_path: Path, admin_password: str) -> FastAPI:
             return JSONResponse({"detail": "Запрос отклонён."}, status_code=403)
         return await call_next(request)
 
+    @app.middleware("http")
+    async def static_revalidate(request: Request, call_next):
+        # Без заголовка браузер берёт скрипты из кэша и после выкатки смешивает старый JS с новой страницей.
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.exception_handler(GameError)
     async def game_error(_: Request, exc: GameError):
         return JSONResponse({"detail": str(exc)}, status_code=409)
